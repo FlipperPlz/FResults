@@ -94,7 +94,7 @@ public class Result : IResult
     }
 
     /// <summary>
-    /// Creates a failed result with the given error message. Internally an error object from the error factory is created. 
+    /// Creates a failed result with the given error message. Internally an error object from the error factory is created.
     /// </summary>
     public static Result Fail(string message)
     {
@@ -354,26 +354,17 @@ public class Result : IResult
     /// <remarks>
     /// Error is lazily evaluated.
     /// </remarks>
-    public static Result OkIf(bool isSuccess, Func<string> errorMessageFactory)
-    {
-        return isSuccess ? Ok() : Fail(errorMessageFactory.Invoke());
-    }
+    public static Result OkIf(bool isSuccess, Func<string> errorMessageFactory) => isSuccess ? Ok() : Fail(errorMessageFactory.Invoke());
 
     /// <summary>
     /// Create a success/failed result depending on the parameter isFailure
     /// </summary>
-    public static Result FailIf(bool isFailure, Error error)
-    {
-        return isFailure ? Fail(error) : Ok();
-    }
+    public static Result FailIf(bool isFailure, Error error) => isFailure ? Fail(error) : Ok();
 
     /// <summary>
     /// Create a success/failed result depending on the parameter isFailure
     /// </summary>
-    public static Result FailIf(bool isFailure, string error)
-    {
-        return isFailure ? Fail(error) : Ok();
-    }
+    public static Result FailIf(bool isFailure, string error) => isFailure ? Fail(error) : Ok();
 
     /// <summary>
     /// Create a success/failed result depending on the parameter isFailure
@@ -494,7 +485,7 @@ public class Result : IResult
     }
 
     /// <summary>
-    /// Deconstruct Result 
+    /// Deconstruct Result
     /// </summary>
     /// <param name="isSuccess"></param>
     /// <param name="isFailed"></param>
@@ -503,6 +494,9 @@ public class Result : IResult
         isSuccess = IsSuccess;
         isFailed = IsFailed;
     }
+
+    public static implicit operator bool(Result result) => result.IsSuccess;
+
 
     /// <summary>
     /// Deconstruct Result
