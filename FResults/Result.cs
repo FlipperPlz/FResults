@@ -48,7 +48,7 @@ public class Result : IResult
     public bool IsFailed { get; protected set; }
     public bool IsSuccess => !IsFailed;
 
-    public string? Message { get; protected set; }
+    public string? Message { get; set; }
     public Dictionary<string, object> Metadata { get; protected set; }
     public List<IReason> Reasons { get; protected set; }
     public IEnumerable<Success> Successes => Reasons.OfType<Success>();

@@ -3,9 +3,9 @@
 public interface IAlert : IReason
 {
 
-    string? AlertName { get; }
+    string? AlertName { get; init; }
 
-    Type? AlertScope { get; }
+    Type? AlertScope { get; init; }
 
     string? AlertScopeName => AlertScope?.Name;
 
@@ -22,10 +22,10 @@ public interface IAlert : IReason
 
 public abstract class Alert : IAlert
 {
-    public abstract string? AlertName { get; set; }
-    public abstract Type? AlertScope { get; set; }
+    public abstract string? AlertName { get; init; }
+    public abstract Type? AlertScope { get; init; }
     public abstract string? Message { get; set; }
-    public abstract bool IsError { get; }
+    public abstract bool IsError { get; set; }
 
     public Dictionary<string, object> Metadata { get; protected set; }
     public List<IAlert>? Reasons { get; protected set; }
