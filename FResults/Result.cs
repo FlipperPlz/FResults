@@ -1,4 +1,4 @@
-﻿using FResults.Reasoning;
+using FResults.Reasoning;
 
 namespace FResults;
 
@@ -27,12 +27,12 @@ public interface IResult : IReason
     /// <summary>
     /// Get all warnings
     /// </summary>
-    IEnumerable<Warning> Warnings { get; }
+    IEnumerable<WarningBase> Warnings { get; }
 
     /// <summary>
     /// Get all errors
     /// </summary>
-    IEnumerable<Error> Errors { get; }
+    IEnumerable<ErrorBase> Errors { get; }
 
     /// <summary>
     /// Is true if Reasons contains no errors. The opposite of IsFailed
@@ -53,8 +53,8 @@ public class Result : IResult
     public List<IReason> Reasons { get; protected set; }
     public IEnumerable<Success> Successes => Reasons.OfType<Success>();
     public IEnumerable<IAlert> Alerts => Reasons.OfType<IAlert>();
-    public IEnumerable<Warning> Warnings => Reasons.OfType<Warning>();
-    public IEnumerable<Error> Errors => Reasons.OfType<Error>();
+    public IEnumerable<WarningBase> Warnings => Reasons.OfType<WarningBase>();
+    public IEnumerable<ErrorBase> Errors => Reasons.OfType<ErrorBase>();
 
     public Result(string? message = null, List<IReason>? reasons = null, Dictionary<string, object>? metadata = null)
     {
@@ -82,7 +82,7 @@ public class Result : IResult
     /// </summary>
     /// <param name="errorMapper"></param>
     /// <returns></returns>
-    public Result MapErrors(Func<Error, Error> errorMapper) =>
+    public Result MapErrors(Func<ErrorBase, ErrorBase> errorMapper) =>
         IsSuccess ? this : new Result()
         .WithErrors(Errors.Select(errorMapper))
         .WithSuccesses(Successes);
@@ -102,7 +102,7 @@ public class Result : IResult
     /// <summary>
     /// Creates a failed result with the given errors.
     /// </summary>
-    public static Result Fail(IEnumerable<Error> errors)
+    public static Result Fail(IEnumerable<ErrorBase> errors)
     {
         ArgumentNullException.ThrowIfNull(errors);
 
@@ -139,24 +139,24 @@ public class Result : IResult
     /// <summary>
     /// Add multiple errors
     /// </summary>
-    public Result WithErrors(IEnumerable<Error> errors) => WithReasons(errors);
+    public Result WithErrors(IEnumerable<ErrorBase> errors) => WithReasons(errors);
 
 
     /// <summary>
     /// Add multiple warnings
     /// </summary>
-    public Result WithWarnings(IEnumerable<Warning> warnings) => WithReasons(warnings);
+    public Result WithWarnings(IEnumerable<WarningBase> warnings) => WithReasons(warnings);
 
     /// <summary>
     /// Add an error
     /// </summary>
-    public Result WithError<TError>() where TError : Error, new() =>
+    public Result WithError<TError>() where TError : ErrorBase, new() =>
         WithError(new TError());
 
     /// <summary>
     /// Add a warning
     /// </summary>
-    public Result WithWarning<TWarning>() where TWarning : Warning, new() =>
+    public Result WithWarning<TWarning>() where TWarning : WarningBase, new() =>
         WithReason(new TWarning());
 
     /// <summary>
@@ -194,12 +194,12 @@ public class Result : IResult
     /// <summary>
     /// Add a warning
     /// </summary>
-    public Result WithWarning(Warning warning) => WithReason(warning);
+    public Result WithWarning(WarningBase warning) => WithReason(warning);
 
     /// <summary>
     /// Add an error
     /// </summary>
-    public Result WithError(Error error) =>
+    public Result WithError(ErrorBase error) =>
         WithReason(error);
 
     public Result WithSuccesses(IEnumerable<Success> successes)
@@ -264,19 +264,19 @@ public class Result : IResult
     /// <summary>
     /// Check if the result object contains an error from a specific type
     /// </summary>
-    public bool HasError<TError>() where TError : Error =>
+    public bool HasError<TError>() where TError : ErrorBase =>
         HasError<TError>(out _);
 
     /// <summary>
     /// Check if the result object contains an error from a specific type
     /// </summary>
-    public bool HasError<TError>(out IEnumerable<TError> result) where TError : Error =>
+    public bool HasError<TError>(out IEnumerable<TError> result) where TError : ErrorBase =>
         HasError(_ => true, out result);
 
     /// <summary>
     /// Check if the result object contains an error from a specific type and with a specific condition
     /// </summary>
-    public bool HasError<TError>(Func<TError, bool> predicate) where TError : Error
+    public bool HasError<TError>(Func<TError, bool> predicate) where TError : ErrorBase
         => HasError(predicate, out _);
 
     /// <summary>
@@ -296,19 +296,19 @@ public class Result : IResult
         return IsSuccess ? result.WithReasons((await action()).Reasons) : result;
     }
 
-    public static implicit operator Result(Error error) => Fail(error);
+    public static implicit operator Result(ErrorBase error) => Fail(error);
 
-    public static implicit operator Result(List<Error> errors) => Fail(errors);
+    public static implicit operator Result(List<ErrorBase> errors) => Fail(errors);
 
     /// <summary>
     /// Creates a failed result with the given error
     /// </summary>
-    public static Result Fail(Error error) => new Result().WithError(error);
+    public static Result Fail(ErrorBase error) => new Result().WithError(error);
 
     /// <summary>
     /// Check if the result object contains an error from a specific type and with a specific condition
     /// </summary>
-    public bool HasError<TError>(Func<TError, bool> predicate, out IEnumerable<TError> result) where TError : Error
+    public bool HasError<TError>(Func<TError, bool> predicate, out IEnumerable<TError> result) where TError : ErrorBase
     {
         ArgumentNullException.ThrowIfNull(predicate);
 
@@ -321,7 +321,7 @@ public class Result : IResult
     /// <summary>
     /// Create a success/failed result depending on the parameter isSuccess
     /// </summary>
-    public static Result OkIf(bool isSuccess, Error error) =>
+    public static Result OkIf(bool isSuccess, ErrorBase error) =>
         isSuccess ? Ok() : Fail(error);
 
     /// <summary>
@@ -335,9 +335,9 @@ public class Result : IResult
     /// Create a success/failed result depending on the parameter isSuccess
     /// </summary>
     /// <remarks>
-    /// Error is lazily evaluated.
+    /// ErrorBase is lazily evaluated.
     /// </remarks>
-    public static Result OkIf(bool isSuccess, Func<Error> errorFactory) =>
+    public static Result OkIf(bool isSuccess, Func<ErrorBase> errorFactory) =>
         isSuccess ? Ok() : Fail(errorFactory.Invoke());
 
 
@@ -345,14 +345,14 @@ public class Result : IResult
     /// Create a success/failed result depending on the parameter isSuccess
     /// </summary>
     /// <remarks>
-    /// Error is lazily evaluated.
+    /// ErrorBase is lazily evaluated.
     /// </remarks>
     public static Result OkIf(bool isSuccess, Func<string> errorMessageFactory) => isSuccess ? Ok() : Fail(errorMessageFactory.Invoke());
 
     /// <summary>
     /// Create a success/failed result depending on the parameter isFailure
     /// </summary>
-    public static Result FailIf(bool isFailure, Error error) => isFailure ? Fail(error) : Ok();
+    public static Result FailIf(bool isFailure, ErrorBase error) => isFailure ? Fail(error) : Ok();
 
     /// <summary>
     /// Create a success/failed result depending on the parameter isFailure
@@ -363,26 +363,26 @@ public class Result : IResult
     /// Create a success/failed result depending on the parameter isFailure
     /// </summary>
     /// <remarks>
-    /// Error is lazily evaluated.
+    /// ErrorBase is lazily evaluated.
     /// </remarks>
-    public static Result FailIf(bool isFailure, Func<Error> errorFactory) =>
+    public static Result FailIf(bool isFailure, Func<ErrorBase> errorFactory) =>
         isFailure ? Fail(errorFactory.Invoke()) : Ok();
 
     /// <summary>
     /// Create a success/failed result depending on the parameter isFailure
     /// </summary>
     /// <remarks>
-    /// Error is lazily evaluated.
+    /// ErrorBase is lazily evaluated.
     /// </remarks>
     public static Result FailIf(bool isFailure, Func<string> errorMessageFactory) =>
         isFailure ? Fail(errorMessageFactory.Invoke()) : Ok();
 
 
     public static bool HasError<TError>(
-        IEnumerable<Error> errors,
+        IEnumerable<ErrorBase> errors,
         Func<TError, bool> predicate,
         out IEnumerable<TError> result
-    ) where TError : Error
+    ) where TError : ErrorBase
     {
         // var foundErrors = errors.OfType<ExceptionalError>()
         //     .Where(e => e.Exception is TException rootExceptionOfTException
@@ -413,12 +413,12 @@ public class Result : IResult
     /// <summary>
     /// Check if the result object contains an error with a specific condition
     /// </summary>
-    public bool HasError(Func<Error, bool> predicate) => HasError(predicate, out _);
+    public bool HasError(Func<ErrorBase, bool> predicate) => HasError(predicate, out _);
 
     /// <summary>
     /// Check if the result object contains an error with a specific condition
     /// </summary>
-    public bool HasError(Func<Error, bool> predicate, out IEnumerable<Error> result)
+    public bool HasError(Func<ErrorBase, bool> predicate, out IEnumerable<ErrorBase> result)
     {
         ArgumentNullException.ThrowIfNull(predicate);
 
@@ -497,10 +497,10 @@ public class Result : IResult
     /// <param name="isSuccess"></param>
     /// <param name="isFailed"></param>
     /// <param name="errors"></param>
-    public void Deconstruct(out bool isSuccess, out bool isFailed, out IEnumerable<Error> errors)
+    public void Deconstruct(out bool isSuccess, out bool isFailed, out IEnumerable<ErrorBase> errors)
     {
         isSuccess = IsSuccess;
         isFailed = IsFailed;
-        errors = IsFailed ? Errors : Enumerable.Empty<Error>();
+        errors = IsFailed ? Errors : Enumerable.Empty<ErrorBase>();
     }
 }
