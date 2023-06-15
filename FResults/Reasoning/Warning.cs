@@ -2,11 +2,13 @@
 
 public class Warning : Alert
 {
-    public Warning(string message = "Undocumented Warning", bool isError = false) : base(message, isError)
+    
+    public Warning(string? errorName = null, Type? errorScope = null, string? message = null) : base(errorName, errorScope, message, true)
     {
     }
 
-    public Warning(string message, IAlert causedBy, bool isError = false) : base(message, causedBy, isError)
+    public Warning(IAlert causedBy, string? message = null, string? errorName = null, Type? errorScope = null) : base(errorName, errorScope, message, causedBy, true)
     {
     }
+    
 }
