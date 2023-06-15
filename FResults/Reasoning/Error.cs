@@ -4,7 +4,7 @@ public abstract class ErrorBase : Alert
 {
     public abstract override string? AlertName { get; }
     public abstract override Type? AlertScope { get; }
-    public abstract override string? Message { get; set; }
+    public abstract override string? Message { get; }
     public sealed override bool IsError { get => true; set => throw new NotSupportedException(); }
 }
 
