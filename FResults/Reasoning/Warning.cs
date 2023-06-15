@@ -1,9 +1,17 @@
 ﻿namespace FResults.Reasoning;
 
-public class Warning : Alert
+public abstract class WarningBase : Alert
 {
-    public override string? AlertName { get; init; }
-    public override Type? AlertScope { get; init; }
-    public override string? Message { get; init; }
-    public override bool IsError { get; } = false;
+    public abstract override string? AlertName { get; set; }
+    public abstract override Type? AlertScope { get; set; }
+    public abstract override string? Message { get; set; }
+    public abstract override bool IsError { get; }
+}
+
+public class Warning : WarningBase
+{
+    public override string? AlertName { get; set;  }
+    public override Type? AlertScope { get; set; }
+    public override string? Message { get; set; }
+    public override bool IsError { get; }
 }

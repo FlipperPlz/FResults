@@ -22,9 +22,9 @@ public interface IAlert : IReason
 
 public abstract class Alert : IAlert
 {
-    public abstract string? AlertName { get; init;}
-    public abstract Type? AlertScope { get; init; }
-    public abstract string? Message { get; init; }
+    public abstract string? AlertName { get; set; }
+    public abstract Type? AlertScope { get; set; }
+    public abstract string? Message { get; set; }
     public abstract bool IsError { get; }
 
     public Dictionary<string, object> Metadata { get; protected set; }
