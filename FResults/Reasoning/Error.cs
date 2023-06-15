@@ -3,11 +3,8 @@
 
 public class Error : Alert
 {
-    public Error(string? errorName = null, Type? errorScope = null, string? message = null) : base(errorName, errorScope, message, true)
-    {
-    }
-
-    public Error(IAlert causedBy, string? message = null, string? errorName = null, Type? errorScope = null) : base(errorName, errorScope, message, causedBy, true)
-    {
-    }
+    public override string? AlertName { get; init; }
+    public override Type? AlertScope { get; init; }
+    public override string? Message { get; init; }
+    public override bool IsError => true;
 }

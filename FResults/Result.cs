@@ -59,7 +59,7 @@ public class Result : IResult
     public Result(string? message = null, List<IReason>? reasons = null, Dictionary<string, object>? metadata = null)
     {
         Reasons = reasons ?? new List<IReason>();
-        Message = (Reasons.Count == 1 && message is not null)
+        Message = Reasons.Count == 1 && message is not null
             ? Reasons[0].Message ?? (IsFailed ? "Complete Failure." : "Complete Success.")
             : message ?? (IsFailed ? "Complete Failure." : "Complete Success.");
         Metadata = metadata ?? new Dictionary<string, object>();
@@ -70,11 +70,10 @@ public class Result : IResult
     /// </summary>
     public static Result Fail(IEnumerable<string> errorMessages)
     {
-        if (errorMessages == null)
-            throw new ArgumentNullException(nameof(errorMessages), "The list of error messages cannot be null");
+        ArgumentNullException.ThrowIfNull(errorMessages);
 
         var result = new Result();
-        result.WithErrors(errorMessages.Select(m => new Error(message: m)));
+        result.WithErrors(errorMessages.Select(m => new Error { Message = m}));
         return result;
     }
 
@@ -83,15 +82,10 @@ public class Result : IResult
     /// </summary>
     /// <param name="errorMapper"></param>
     /// <returns></returns>
-    public Result MapErrors(Func<Error, Error> errorMapper)
-    {
-        if (IsSuccess)
-            return this;
-
-        return new Result()
-            .WithErrors(Errors.Select(errorMapper))
-            .WithSuccesses(Successes);
-    }
+    public Result MapErrors(Func<Error, Error> errorMapper) =>
+        IsSuccess ? this : new Result()
+        .WithErrors(Errors.Select(errorMapper))
+        .WithSuccesses(Successes);
 
     /// <summary>
     /// Creates a failed result with the given error message. Internally an error object from the error factory is created.
@@ -99,7 +93,9 @@ public class Result : IResult
     public static Result Fail(string message)
     {
         var result = new Result();
-        result.WithError(new Error(message: message));
+        result.WithError(new Error {
+            Message = message
+        });
         return result;
     }
 
@@ -178,14 +174,22 @@ public class Result : IResult
     /// Add an error
     /// </summary>
     public Result WithError(string errorName, Type? errorScope = null, string? errorMessage = null) =>
-        WithError(new Error(errorName, errorScope, errorMessage));
+        WithError(new Error {
+            AlertName = errorName,
+            AlertScope = errorScope,
+            Message = errorMessage
+        });
 
 
     /// <summary>
     /// Add an error
     /// </summary>
     public Result WithWarning(string warningName, Type? warningScope = null, string? warningMessage = null) =>
-        WithWarning(new Warning(warningName, warningScope, warningMessage));
+        WithWarning(new Warning {
+            AlertName = warningName,
+            AlertScope = warningScope,
+            Message = warningMessage
+        });
 
     /// <summary>
     /// Add a warning
@@ -238,11 +242,7 @@ public class Result : IResult
         var result = new Result();
         result.WithReasons(Reasons);
 
-        if (!IsSuccess) return result;
-
-        result.WithReasons(action().Reasons);
-
-        return result;
+        return IsSuccess ? result.WithReasons(action().Reasons) : result;
     }
 
     /// <summary>
@@ -256,13 +256,9 @@ public class Result : IResult
     /// <param name="action">Action that may fail.</param>
     public async Task<Result> Bind(Func<Task<Result>> action)
     {
-        var result = new Result();
-        result.WithReasons(Reasons);
+        var result = new Result().WithReasons(Reasons);
 
-        if (!IsSuccess) return result;
-        result.WithReasons((await action()).Reasons);
-
-        return result;
+        return IsSuccess ? result.WithReasons((await action()).Reasons) : result;
     }
 
     /// <summary>
@@ -297,10 +293,7 @@ public class Result : IResult
         var result = new Result();
         result.WithReasons(Reasons);
 
-        if (!IsSuccess) return result;
-        result.WithReasons((await action()).Reasons);
-
-        return result;
+        return IsSuccess ? result.WithReasons((await action()).Reasons) : result;
     }
 
     public static implicit operator Result(Error error) => Fail(error);
