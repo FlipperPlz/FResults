@@ -267,11 +267,24 @@ public class Result : IResult
     public bool HasError<TError>() where TError : ErrorBase =>
         HasError<TError>(out _);
 
+
+    /// <summary>
+    /// Check if the result object contains an warning from a specific type
+    /// </summary>
+    public bool HasWarning<TWarning>() where TWarning : WarningBase =>
+        HasWarning<TWarning>(out _);
+
     /// <summary>
     /// Check if the result object contains an error from a specific type
     /// </summary>
     public bool HasError<TError>(out IEnumerable<TError> result) where TError : ErrorBase =>
         HasError(_ => true, out result);
+
+    /// <summary>
+    /// Check if the result object contains an error from a specific type
+    /// </summary>
+    public bool HasWarning<TWarning>(out IEnumerable<TWarning> result) where TWarning : WarningBase =>
+        HasWarning(_ => true, out result);
 
     /// <summary>
     /// Check if the result object contains an error from a specific type and with a specific condition
@@ -315,7 +328,21 @@ public class Result : IResult
         return HasError(Errors, predicate, out result);
     }
 
+    /// <summary>
+    /// Check if the result object contains an warning from a specific type and with a specific condition
+    /// </summary>
+    public bool HasWarning<TWarning>(Func<TWarning, bool> predicate, out IEnumerable<TWarning> result) where TWarning : WarningBase
+    {
+        ArgumentNullException.ThrowIfNull(predicate);
+
+        return HasWarning(Warnings, predicate, out result);
+    }
+
     public static Result Merge(IEnumerable<Result> results) =>
+        Ok().WithReasons(results.SelectMany(result => result.Reasons));
+
+
+    public static Result Merge(params Result[] results) =>
         Ok().WithReasons(results.SelectMany(result => result.Reasons));
 
     /// <summary>
@@ -376,6 +403,38 @@ public class Result : IResult
     /// </remarks>
     public static Result FailIf(bool isFailure, Func<string> errorMessageFactory) =>
         isFailure ? Fail(errorMessageFactory.Invoke()) : Ok();
+
+    public static bool HasWarning<TWarning>(
+        IEnumerable<WarningBase> warnings,
+        Func<TWarning, bool> predicate,
+        out IEnumerable<TWarning> result
+    ) where TWarning : WarningBase
+    {
+        // var foundErrors = errors.OfType<ExceptionalError>()
+        //     .Where(e => e.Exception is TException rootExceptionOfTException
+        //                 && predicate(rootExceptionOfTException))
+        //     .ToList();
+        //
+        // if (foundErrors.Any())
+        // {
+        //     result = foundErrors;
+        //     return true;
+        // } as a reminder of what this method originally did
+
+        foreach (var warning in warnings)
+        {
+            if (!HasWarning(warning.WarningReasons, predicate, out var fErrors))
+            {
+                continue;
+            }
+
+            result = fErrors;
+            return true;
+        }
+
+        result = Array.Empty<TWarning>();
+        return false;
+    }
 
 
     public static bool HasError<TError>(
