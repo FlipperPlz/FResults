@@ -2,6 +2,8 @@ using FResults.Reasoning;
 
 namespace FResults;
 
+using Extensions;
+
 public interface IResult : IReason
 {
     /// <summary>
@@ -42,8 +44,8 @@ public interface IResult : IReason
 
 public class Result : IResult
 {
-    private static readonly Result DefaultOk = new();
-    private static readonly Success DefaultSuccess = new();
+    internal static readonly Result DefaultOk = new();
+    internal static readonly Success DefaultSuccess = new();
 
     public bool IsFailed { get; protected set; }
     public bool IsSuccess => !IsFailed;
@@ -121,96 +123,7 @@ public class Result : IResult
     /// </summary>
     public static Result ImmutableOk() => DefaultOk;
 
-    public Result WithReason(IReason reason)
-    {
-        Reasons.Add(reason);
-        return this;
-    }
 
-    /// <summary>
-    /// Add multiple reasons (success or error)
-    /// </summary>
-    public Result WithReasons(IEnumerable<IReason> reasons)
-    {
-        Reasons.AddRange(reasons);
-        return this;
-    }
-
-    /// <summary>
-    /// Add multiple errors
-    /// </summary>
-    public Result WithErrors(IEnumerable<ErrorBase> errors) => WithReasons(errors);
-
-
-    /// <summary>
-    /// Add multiple warnings
-    /// </summary>
-    public Result WithWarnings(IEnumerable<WarningBase> warnings) => WithReasons(warnings);
-
-    /// <summary>
-    /// Add an error
-    /// </summary>
-    public Result WithError<TError>() where TError : ErrorBase, new() =>
-        WithError(new TError());
-
-    /// <summary>
-    /// Add a warning
-    /// </summary>
-    public Result WithWarning<TWarning>() where TWarning : WarningBase, new() =>
-        WithReason(new TWarning());
-
-    /// <summary>
-    /// Add a success
-    /// </summary>
-    public Result WithSuccess() =>
-        WithSuccess(DefaultSuccess);
-
-    /// <summary>
-    /// Add a success
-    /// </summary>
-    public Result WithSuccess(Success success) => WithReason(success);
-
-    /// <summary>
-    /// Add an error
-    /// </summary>
-    public Result WithError(string errorName, Type? errorScope = null, string? errorMessage = null) =>
-        WithError(new Error {
-            AlertName = errorName,
-            AlertScope = errorScope,
-            Message = errorMessage
-        });
-
-
-    /// <summary>
-    /// Add an error
-    /// </summary>
-    public Result WithWarning(string warningName, Type? warningScope = null, string? warningMessage = null) =>
-        WithWarning(new Warning {
-            AlertName = warningName,
-            AlertScope = warningScope,
-            Message = warningMessage
-        });
-
-    /// <summary>
-    /// Add a warning
-    /// </summary>
-    public Result WithWarning(WarningBase warning) => WithReason(warning);
-
-    /// <summary>
-    /// Add an error
-    /// </summary>
-    public Result WithError(ErrorBase error) =>
-        WithReason(error);
-
-    public Result WithSuccesses(IEnumerable<Success> successes)
-    {
-        foreach (var success in successes)
-        {
-            WithSuccess(success);
-        }
-
-        return this;
-    }
 
     /// <summary>
     /// Map all successes of the result via successMapper
@@ -220,13 +133,6 @@ public class Result : IResult
     public Result MapSuccesses(Func<Success, Success> successMapper) => new Result()
         .WithErrors(Errors)
         .WithSuccesses(Successes.Select(successMapper));
-
-    // public Result<TNewValue> ToResult<TNewValue>(TNewValue newValue = default!)
-    // {
-    //     return new Result<TNewValue>()
-    //         .WithValue(IsFailed ? default : newValue)
-    //         .WithReasons(Reasons);
-    // }
 
     /// <summary>
     /// Execute an action which returns a <see cref="Result"/>.
@@ -262,37 +168,6 @@ public class Result : IResult
     }
 
     /// <summary>
-    /// Check if the result object contains an error from a specific type
-    /// </summary>
-    public bool HasError<TError>() where TError : ErrorBase =>
-        HasError<TError>(out _);
-
-
-    /// <summary>
-    /// Check if the result object contains an warning from a specific type
-    /// </summary>
-    public bool HasWarning<TWarning>() where TWarning : WarningBase =>
-        HasWarning<TWarning>(out _);
-
-    /// <summary>
-    /// Check if the result object contains an error from a specific type
-    /// </summary>
-    public bool HasError<TError>(out IEnumerable<TError> result) where TError : ErrorBase =>
-        HasError(_ => true, out result);
-
-    /// <summary>
-    /// Check if the result object contains an error from a specific type
-    /// </summary>
-    public bool HasWarning<TWarning>(out IEnumerable<TWarning> result) where TWarning : WarningBase =>
-        HasWarning(_ => true, out result);
-
-    /// <summary>
-    /// Check if the result object contains an error from a specific type and with a specific condition
-    /// </summary>
-    public bool HasError<TError>(Func<TError, bool> predicate) where TError : ErrorBase
-        => HasError(predicate, out _);
-
-    /// <summary>
     /// Execute an action which returns a <see cref="Result"/> asynchronously.
     /// </summary>
     /// <example>
@@ -318,25 +193,6 @@ public class Result : IResult
     /// </summary>
     public static Result Fail(ErrorBase error) => new Result().WithError(error);
 
-    /// <summary>
-    /// Check if the result object contains an error from a specific type and with a specific condition
-    /// </summary>
-    public bool HasError<TError>(Func<TError, bool> predicate, out IEnumerable<TError> result) where TError : ErrorBase
-    {
-        ArgumentNullException.ThrowIfNull(predicate);
-
-        return HasError(Errors, predicate, out result);
-    }
-
-    /// <summary>
-    /// Check if the result object contains an warning from a specific type and with a specific condition
-    /// </summary>
-    public bool HasWarning<TWarning>(Func<TWarning, bool> predicate, out IEnumerable<TWarning> result) where TWarning : WarningBase
-    {
-        ArgumentNullException.ThrowIfNull(predicate);
-
-        return HasWarning(Warnings, predicate, out result);
-    }
 
     public static Result Merge(IEnumerable<Result> results) =>
         Ok().WithReasons(results.SelectMany(result => result.Reasons));
@@ -404,137 +260,68 @@ public class Result : IResult
     public static Result FailIf(bool isFailure, Func<string> errorMessageFactory) =>
         isFailure ? Fail(errorMessageFactory.Invoke()) : Ok();
 
-    public static bool HasWarning<TWarning>(
-        IEnumerable<WarningBase> warnings,
-        Func<TWarning, bool> predicate,
-        out IEnumerable<TWarning> result
-    ) where TWarning : WarningBase
-    {
-        // var foundErrors = errors.OfType<ExceptionalError>()
-        //     .Where(e => e.Exception is TException rootExceptionOfTException
-        //                 && predicate(rootExceptionOfTException))
-        //     .ToList();
-        //
-        // if (foundErrors.Any())
-        // {
-        //     result = foundErrors;
-        //     return true;
-        // } as a reminder of what this method originally did
-
-        foreach (var warning in warnings)
-        {
-            if (!HasWarning(warning.WarningReasons, predicate, out var fErrors))
-            {
-                continue;
-            }
-
-            result = fErrors;
-            return true;
-        }
-
-        result = Array.Empty<TWarning>();
-        return false;
-    }
-
-
-    public static bool HasError<TError>(
-        IEnumerable<ErrorBase> errors,
-        Func<TError, bool> predicate,
-        out IEnumerable<TError> result
-    ) where TError : ErrorBase
-    {
-        // var foundErrors = errors.OfType<ExceptionalError>()
-        //     .Where(e => e.Exception is TException rootExceptionOfTException
-        //                 && predicate(rootExceptionOfTException))
-        //     .ToList();
-        //
-        // if (foundErrors.Any())
-        // {
-        //     result = foundErrors;
-        //     return true;
-        // } as a reminder of what this method originally did
-
-        foreach (var error in errors)
-        {
-            if (!HasError(error.ErrorReasons, predicate, out var fErrors))
-            {
-                continue;
-            }
-
-            result = fErrors;
-            return true;
-        }
-
-        result = Array.Empty<TError>();
-        return false;
-    }
 
     /// <summary>
-    /// Check if the result object contains an error with a specific condition
+    /// Check if the result object contains an error from a specific type
     /// </summary>
-    public bool HasError(Func<ErrorBase, bool> predicate) => HasError(predicate, out _);
+    public bool HasWarning<TWarning>() where TWarning : ErrorBase =>
+        HasError<TWarning>(out _);
 
     /// <summary>
-    /// Check if the result object contains an error with a specific condition
+    /// Check if the result object contains an error from a specific type
     /// </summary>
-    public bool HasError(Func<ErrorBase, bool> predicate, out IEnumerable<ErrorBase> result)
-    {
-        ArgumentNullException.ThrowIfNull(predicate);
+    public bool HasWarning<TWarning>(out IEnumerable<TWarning> result) where TWarning : WarningBase =>
+        (result = Warnings.OfType<TWarning>()).Any();
 
-        return HasError(Errors, predicate, out result);
-    }
+
+    /// <summary>
+    /// Check if the result object contains an error from a specific type
+    /// </summary>
+    public bool HasActualError<TError>() where TError : Error =>
+        HasError<TError>(out _);
+
+    /// <summary>
+    /// Check if the result object contains an error from a specific type
+    /// </summary>
+    public bool HasActualError<TError>(out IEnumerable<TError> result) where TError : Error =>
+        (result = Errors.OfType<TError>()).Any();
+
+    /// <summary>
+    /// Check if the result object contains an error from a specific type
+    /// </summary>
+    public bool HasAlert<TAlert>() where TAlert : IAlert =>
+        HasAlert<TAlert>(out _);
+
+    /// <summary>
+    /// Check if the result object contains an error from a specific type
+    /// </summary>
+    public bool HasAlert<TAlert>(out IEnumerable<TAlert> result) where TAlert : IAlert =>
+        (result = Errors.OfType<TAlert>()).Any();
+
+
+    /// <summary>
+    /// Check if the result object contains an alert flagged as an error from a specific type
+    /// </summary>
+    public bool HasError<TError>() where TError : IAlert =>
+        HasError<TError>(out _);
+
+    /// <summary>
+    /// Check if the result object contains an alert flagged as an error from a specific type
+    /// </summary>
+    public bool HasError<TError>(out IEnumerable<TError> result) where TError : IAlert =>
+        (result = Alerts.OfType<TError>().Where(e => e.IsError)).Any();
 
     /// <summary>
     /// Check if the result object contains a success from a specific type
     /// </summary>
     public bool HasSuccess<TSuccess>() where TSuccess : Success =>
-        HasSuccess<TSuccess>(_ => true, out _);
+        HasSuccess<TSuccess>(out _);
 
     /// <summary>
     /// Check if the result object contains a success from a specific type
     /// </summary>
     public bool HasSuccess<TSuccess>(out IEnumerable<TSuccess> result) where TSuccess : Success =>
-        HasSuccess(_ => true, out result);
-
-    /// <summary>
-    /// Check if the result object contains a success from a specific type and with a specific condition
-    /// </summary>
-    public bool HasSuccess<TSuccess>(Func<TSuccess, bool> predicate) where TSuccess : Success =>
-        HasSuccess(predicate, out _);
-
-    public bool HasSuccess<TSuccess>(Func<TSuccess, bool> predicate, out IEnumerable<TSuccess> result)
-        where TSuccess : Success =>
-        HasSuccess(Successes, predicate, out result);
-
-    /// <summary>
-    /// Check if the result object contains a success with a specific condition
-    /// </summary>
-    public bool HasSuccess(Func<Success, bool> predicate, out IEnumerable<Success> result) =>
-        HasSuccess(Successes, predicate, out result);
-
-    /// <summary>
-    /// Check if the result object contains a success with a specific condition
-    /// </summary>
-    public bool HasSuccess(Func<Success, bool> predicate) =>
-        HasSuccess(Successes, predicate, out _);
-
-    public static bool HasSuccess<TSuccess>(
-        IEnumerable<Success> successes,
-        Func<TSuccess, bool> predicate,
-        out IEnumerable<TSuccess> result) where TSuccess : Success
-    {
-        var foundSuccesses = successes.OfType<TSuccess>()
-            .Where(predicate)
-            .ToList();
-        if (foundSuccesses.Any())
-        {
-            result = foundSuccesses;
-            return true;
-        }
-
-        result = Array.Empty<TSuccess>();
-        return false;
-    }
+        (result = Successes.OfType<TSuccess>()).Any();
 
     /// <summary>
     /// Deconstruct Result
@@ -550,16 +337,18 @@ public class Result : IResult
     public static implicit operator bool(Result result) => result.IsSuccess;
 
 
+    public override string ToString() => string.Join("\n", Alerts.Select(a => a.ToString()));
+
     /// <summary>
     /// Deconstruct Result
     /// </summary>
     /// <param name="isSuccess"></param>
     /// <param name="isFailed"></param>
-    /// <param name="errors"></param>
-    public void Deconstruct(out bool isSuccess, out bool isFailed, out IEnumerable<ErrorBase> errors)
+    /// <param name="alerts"></param>
+    public void Deconstruct(out bool isSuccess, out bool isFailed, out IEnumerable<IAlert> alerts)
     {
         isSuccess = IsSuccess;
         isFailed = IsFailed;
-        errors = IsFailed ? Errors : Enumerable.Empty<ErrorBase>();
+        alerts = Alerts;
     }
 }
